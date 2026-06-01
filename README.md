@@ -38,5 +38,5 @@ To click the widget, enable interaction in Übersicht preferences, grant Accessi
 |---------|----------|---------|
 | Parent issue | `ISSUE_ID` in widget file | `SF-118` |
 | Refresh interval | `refreshFrequency` | 30 seconds |
-| Widget scale | `SCALE` | `2.25` |
+| Widget scale | `SCALE` | `2.025` |
 | API key file | `~/Library/Application Support/Übersicht/.linear-api-key` | — |
