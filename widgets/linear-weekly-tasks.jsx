@@ -146,6 +146,7 @@ export const className = `
   transform: translateX(-50%);
   width: ${px(320)};
   box-sizing: border-box;
+  padding: ${px(8)} ${px(10)} ${px(8)};
   background: rgba(28, 28, 30, 0.82);
   -webkit-backdrop-filter: blur(${px(24)});
   color: #f5f5f7;
