@@ -14,6 +14,9 @@ const QUERY = `
         nodes {
           identifier
           title
+          project {
+            name
+          }
           state {
             name
             type
@@ -115,8 +118,30 @@ const sortTasks = (tasks) =>
     const orderA = STATE_ORDER[a.state.type] ?? 5;
     const orderB = STATE_ORDER[b.state.type] ?? 5;
     if (orderA !== orderB) return orderA - orderB;
+    const projectA = parseTask(a).projectLabel;
+    const projectB = parseTask(b).projectLabel;
+    if (projectA !== projectB) return projectA.localeCompare(projectB);
     return a.title.localeCompare(b.title);
   });
+
+const PROJECT_ALIASES = {
+  Cain: "CA",
+  Stackfix: "SF",
+  Caterparts: "CTG",
+};
+
+const parseTask = (task) => {
+  const match = task.title.match(/^([A-Za-z0-9]+):\s*(.+)$/);
+  const prefix = match?.[1]?.toUpperCase() || "";
+  const title = match?.[2] || task.title;
+  const projectLabel =
+    prefix ||
+    PROJECT_ALIASES[task.project?.name] ||
+    task.project?.name?.slice(0, 4).toUpperCase() ||
+    "";
+
+  return { projectLabel, title };
+};
 
 const statusSymbol = (stateType) => {
   if (stateType === "completed") return "✓";
@@ -223,7 +248,7 @@ export const className = `
 
   .task {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: ${px(8)};
     padding: ${px(10)} 0;
   }
@@ -257,6 +282,20 @@ export const className = `
   .label.done {
     color: rgba(245, 245, 247, 0.45);
     text-decoration: line-through;
+  }
+
+  .project {
+    flex-shrink: 0;
+    min-width: ${px(34)};
+    padding: ${px(2)} ${px(6)};
+    border-radius: ${px(4)};
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(245, 245, 247, 0.62);
+    font-size: ${px(9)};
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
   }
 
   .empty,
@@ -310,6 +349,7 @@ export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
           {tasks.map((task) => {
             const done = isDone(task.state.type);
             const started = task.state.type === "started";
+            const { projectLabel, title } = parseTask(task);
 
             return (
               <li
@@ -322,9 +362,10 @@ export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
                 >
                   {statusSymbol(task.state.type)}
                 </span>
-                <div>
-                  <div className={`label ${done ? "done" : ""}`}>{task.title}</div>
-                </div>
+                {projectLabel ? (
+                  <span className="project">{projectLabel}</span>
+                ) : null}
+                <div className={`label ${done ? "done" : ""}`}>{title}</div>
               </li>
             );
           })}
