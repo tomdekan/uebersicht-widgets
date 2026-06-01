@@ -141,9 +141,9 @@ const SCALE = 2.25;
 const px = (value) => `${value * SCALE}px`;
 
 export const className = `
-  top: 50%;
+  top: ${px(24)};
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   width: ${px(320)};
   box-sizing: border-box;
   padding: ${px(14)} ${px(16)} ${px(12)};
