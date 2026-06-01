@@ -14,6 +14,7 @@ const QUERY = `
         nodes {
           identifier
           title
+          priority
           project {
             name
             icon
@@ -120,11 +121,18 @@ const stripTitlePrefix = (title) => {
   return match?.[1] || title;
 };
 
+const priorityRank = (priority) => (priority > 0 ? priority : Number.MAX_SAFE_INTEGER);
+
 const sortTasks = (tasks) =>
   [...tasks].sort((a, b) => {
+    const priorityA = priorityRank(a.priority);
+    const priorityB = priorityRank(b.priority);
+    if (priorityA !== priorityB) return priorityA - priorityB;
+
     const orderA = STATE_ORDER[a.state.type] ?? 5;
     const orderB = STATE_ORDER[b.state.type] ?? 5;
     if (orderA !== orderB) return orderA - orderB;
+
     const projectA = a.project?.name || "";
     const projectB = b.project?.name || "";
     if (projectA !== projectB) return projectA.localeCompare(projectB);
