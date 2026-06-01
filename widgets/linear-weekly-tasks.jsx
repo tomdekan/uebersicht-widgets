@@ -138,17 +138,21 @@ const formatUpdatedAt = (updatedAt) => {
 };
 
 const SCALE = 2.025;
-const px = (value) => `${value * SCALE}px`;
+const px = (value) => `${Math.round(value * SCALE)}px`;
 
 export const className = `
   top: ${px(8)};
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
   width: ${px(320)};
   box-sizing: border-box;
   padding: ${px(8)} ${px(10)} ${px(8)};
   background: rgba(28, 28, 30, 0.82);
   -webkit-backdrop-filter: blur(${px(24)});
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   color: #f5f5f7;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   font-size: ${px(12)};
