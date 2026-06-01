@@ -259,12 +259,6 @@ export const className = `
     text-decoration: line-through;
   }
 
-  .state {
-    color: rgba(245, 245, 247, 0.4);
-    font-size: ${px(10)};
-    margin-top: ${px(1)};
-  }
-
   .empty,
   .error,
   .loading {
@@ -330,7 +324,6 @@ export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
                 </span>
                 <div>
                   <div className={`label ${done ? "done" : ""}`}>{task.title}</div>
-                  <div className="state">{task.state.name}</div>
                 </div>
               </li>
             );
