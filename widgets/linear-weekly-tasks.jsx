@@ -225,7 +225,7 @@ export const className = `
     display: flex;
     align-items: flex-start;
     gap: ${px(8)};
-    padding: ${px(6)} 0;
+    padding: ${px(10)} 0;
   }
 
   .task + .task {
