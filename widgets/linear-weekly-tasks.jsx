@@ -137,7 +137,7 @@ const formatUpdatedAt = (updatedAt) => {
   return `${Math.floor(seconds / 60)}m ago`;
 };
 
-const SCALE = 2.25;
+const SCALE = 1.875;
 const px = (value) => `${value * SCALE}px`;
 
 export const className = `
