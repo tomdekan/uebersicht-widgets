@@ -24,9 +24,11 @@ const QUERY = `
   }
 `;
 
-export const refreshFrequency = 60 * 1000;
+export const refreshFrequency = 30 * 1000;
 
 export const command = async (dispatch) => {
+  dispatch({ type: "REFRESH_START" });
+
   try {
     const apiKey = (await run(API_KEY_COMMAND)).trim();
 
@@ -67,15 +69,28 @@ export const command = async (dispatch) => {
   }
 };
 
-export const initialState = { loading: true };
+export const initialState = { loading: true, refreshing: false };
 
 export const updateState = (event, previousState) => {
   switch (event.type) {
+    case "REFRESH_START":
+      return {
+        ...previousState,
+        refreshing: Boolean(previousState.issue),
+      };
     case "LOAD_SUCCEEDED":
-      return { loading: false, issue: event.data, error: null };
-    case "LOAD_FAILED":
       return {
         loading: false,
+        refreshing: false,
+        issue: event.data,
+        error: null,
+        updatedAt: Date.now(),
+      };
+    case "LOAD_FAILED":
+      return {
+        ...previousState,
+        loading: false,
+        refreshing: false,
         error: event.error,
         issue: previousState.issue || null,
       };
@@ -84,8 +99,24 @@ export const updateState = (event, previousState) => {
   }
 };
 
+const STATE_ORDER = {
+  started: 0,
+  unstarted: 1,
+  backlog: 2,
+  completed: 3,
+  canceled: 4,
+};
+
 const isDone = (stateType) =>
   stateType === "completed" || stateType === "canceled";
+
+const sortTasks = (tasks) =>
+  [...tasks].sort((a, b) => {
+    const orderA = STATE_ORDER[a.state.type] ?? 5;
+    const orderB = STATE_ORDER[b.state.type] ?? 5;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.title.localeCompare(b.title);
+  });
 
 const statusSymbol = (stateType) => {
   if (stateType === "completed") return "✓";
@@ -97,6 +128,13 @@ const statusSymbol = (stateType) => {
 const openInLinear = (url) => {
   if (!url) return;
   run(`open ${JSON.stringify(url)}`);
+};
+
+const formatUpdatedAt = (updatedAt) => {
+  if (!updatedAt) return "";
+  const seconds = Math.max(0, Math.floor((Date.now() - updatedAt) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  return `${Math.floor(seconds / 60)}m ago`;
 };
 
 const SCALE = 1.5;
@@ -152,6 +190,25 @@ export const className = `
     color: rgba(245, 245, 247, 0.55);
     font-size: ${px(11)};
     white-space: nowrap;
+  }
+
+  .meta.refreshing {
+    color: rgba(100, 210, 255, 0.75);
+  }
+
+  .progress {
+    height: ${px(3)};
+    margin-bottom: ${px(10)};
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: ${px(2)};
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: #64d2ff;
+    border-radius: ${px(2)};
+    transition: width 0.3s ease;
   }
 
   .tasks {
@@ -216,7 +273,7 @@ export const className = `
   }
 `;
 
-export const render = ({ loading, issue, error }) => {
+export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
   if (loading && !issue) {
     return <div className="loading">Loading weekly tasks…</div>;
   }
@@ -225,8 +282,9 @@ export const render = ({ loading, issue, error }) => {
     return <div className="error">{error}</div>;
   }
 
-  const tasks = issue?.children?.nodes || [];
+  const tasks = sortTasks(issue?.children?.nodes || []);
   const doneCount = tasks.filter((task) => isDone(task.state.type)).length;
+  const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
   return (
     <div>
@@ -235,10 +293,17 @@ export const render = ({ loading, issue, error }) => {
         onClick={() => openInLinear(issue?.url)}
       >
         <div className="title">{issue?.title || "Weekly tasks"}</div>
-        <div className="meta">
+        <div className={`meta ${refreshing ? "refreshing" : ""}`}>
           {issue?.identifier} · {doneCount}/{tasks.length}
+          {updatedAt ? ` · ${formatUpdatedAt(updatedAt)}` : ""}
         </div>
       </div>
+
+      {tasks.length > 0 ? (
+        <div className="progress">
+          <div className="progress-bar" style={{ width: `${progress}%` }} />
+        </div>
+      ) : null}
 
       {tasks.length === 0 ? (
         <div className="empty">No sub-issues yet.</div>
