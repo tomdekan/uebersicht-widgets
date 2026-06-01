@@ -40,5 +40,5 @@ To click the widget, enable interaction in Übersicht preferences, grant Accessi
 | Refresh interval | `refreshFrequency` | 30 seconds |
 | Widget scale | `SCALE` | `2.025` |
 
-Project tags show short codes (e.g. `CA`, `CTG`) instead of full customer names — edit `PROJECT_TO_SHORT` in the widget file to add or change codes.
+Name Linear projects with short codes (e.g. `CA`, `CTG`) — the widget displays the project name directly from Linear.
 | API key file | `~/Library/Application Support/Übersicht/.linear-api-key` | — |

@@ -26,13 +26,6 @@ const QUERY = `
         }
       }
     }
-    projects(first: 50) {
-      nodes {
-        name
-        icon
-        color
-      }
-    }
   }
 `;
 
@@ -75,11 +68,7 @@ export const command = async (dispatch) => {
       return;
     }
 
-    dispatch({
-      type: "LOAD_SUCCEEDED",
-      data: json.data.issue,
-      projects: json.data.projects.nodes,
-    });
+    dispatch({ type: "LOAD_SUCCEEDED", data: json.data.issue });
   } catch (error) {
     dispatch({ type: "LOAD_FAILED", error: String(error) });
   }
@@ -99,7 +88,6 @@ export const updateState = (event, previousState) => {
         loading: false,
         refreshing: false,
         issue: event.data,
-        projects: event.projects,
         error: null,
         updatedAt: Date.now(),
       };
@@ -127,54 +115,18 @@ const STATE_ORDER = {
 const isDone = (stateType) =>
   stateType === "completed" || stateType === "canceled";
 
-const PREFIX_TO_PROJECT = {
-  CA: "Cain",
-  CTG: "Coach Travel Group",
-  CP: "Caterparts",
-  CL: "Class Legal",
-};
-
-const PROJECT_TO_SHORT = {
-  Cain: "CA",
-  "Coach Travel Group": "CTG",
-  Caterparts: "CP",
-  "Class Legal": "CL",
-};
-
 const stripTitlePrefix = (title) => {
   const match = title.match(/^[A-Za-z0-9]+:\s*(.+)$/);
   return match?.[1] || title;
 };
 
-const resolveProject = (task, projects) => {
-  if (task.project?.name) return task.project;
-
-  const prefix = task.title.match(/^([A-Za-z0-9]+):/)?.[1]?.toUpperCase();
-  const projectName = prefix ? PREFIX_TO_PROJECT[prefix] : null;
-  if (!projectName) return null;
-
-  return (
-    projects.find((project) => project.name === projectName) || {
-      name: projectName,
-      icon: null,
-      color: "#bec2c8",
-    }
-  );
-};
-
-const projectShortLabel = (project, task) => {
-  const prefix = task.title.match(/^([A-Za-z0-9]+):/)?.[1]?.toUpperCase();
-  if (prefix && PREFIX_TO_PROJECT[prefix]) return prefix;
-  return PROJECT_TO_SHORT[project?.name] || "";
-};
-
-const sortTasks = (tasks, projects) =>
+const sortTasks = (tasks) =>
   [...tasks].sort((a, b) => {
     const orderA = STATE_ORDER[a.state.type] ?? 5;
     const orderB = STATE_ORDER[b.state.type] ?? 5;
     if (orderA !== orderB) return orderA - orderB;
-    const projectA = resolveProject(a, projects)?.name || "";
-    const projectB = resolveProject(b, projects)?.name || "";
+    const projectA = a.project?.name || "";
+    const projectB = b.project?.name || "";
     if (projectA !== projectB) return projectA.localeCompare(projectB);
     return a.title.localeCompare(b.title);
   });
@@ -203,11 +155,8 @@ const ProjectCubeIcon = ({ color }) => (
   </svg>
 );
 
-const ProjectTag = ({ project, task }) => {
+const ProjectTag = ({ project }) => {
   if (!project?.name) return null;
-
-  const label = projectShortLabel(project, task);
-  if (!label) return null;
 
   const color = project.color || "#bec2c8";
 
@@ -224,7 +173,7 @@ const ProjectTag = ({ project, task }) => {
       ) : (
         <ProjectCubeIcon color={color} />
       )}
-      <span className="project-name">{label}</span>
+      <span className="project-name">{project.name}</span>
     </span>
   );
 };
@@ -415,14 +364,7 @@ export const className = `
   }
 `;
 
-export const render = ({
-  loading,
-  refreshing,
-  issue,
-  projects = [],
-  error,
-  updatedAt,
-}) => {
+export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
   if (loading && !issue) {
     return <div className="loading">Loading weekly tasks…</div>;
   }
@@ -431,7 +373,7 @@ export const render = ({
     return <div className="error">{error}</div>;
   }
 
-  const tasks = sortTasks(issue?.children?.nodes || [], projects);
+  const tasks = sortTasks(issue?.children?.nodes || []);
   const doneCount = tasks.filter((task) => isDone(task.state.type)).length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
@@ -461,7 +403,7 @@ export const render = ({
           {tasks.map((task) => {
             const done = isDone(task.state.type);
             const started = task.state.type === "started";
-            const project = resolveProject(task, projects);
+            const project = task.project;
             const title = stripTitlePrefix(task.title);
 
             return (
@@ -479,7 +421,7 @@ export const render = ({
                   <div className={`label ${done ? "done" : ""}`}>{title}</div>
                   {project ? (
                     <div className="task-meta">
-                      <ProjectTag project={project} task={task} />
+                      <ProjectTag project={project} />
                     </div>
                   ) : null}
                 </div>
