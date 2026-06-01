@@ -141,7 +141,7 @@ const SCALE = 2.25;
 const px = (value) => `${value * SCALE}px`;
 
 export const className = `
-  top: ${px(24)};
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   width: ${px(320)};
