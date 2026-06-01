@@ -16,12 +16,21 @@ const QUERY = `
           title
           project {
             name
+            icon
+            color
           }
           state {
             name
             type
           }
         }
+      }
+    }
+    projects(first: 50) {
+      nodes {
+        name
+        icon
+        color
       }
     }
   }
@@ -66,7 +75,11 @@ export const command = async (dispatch) => {
       return;
     }
 
-    dispatch({ type: "LOAD_SUCCEEDED", data: json.data.issue });
+    dispatch({
+      type: "LOAD_SUCCEEDED",
+      data: json.data.issue,
+      projects: json.data.projects.nodes,
+    });
   } catch (error) {
     dispatch({ type: "LOAD_FAILED", error: String(error) });
   }
@@ -86,6 +99,7 @@ export const updateState = (event, previousState) => {
         loading: false,
         refreshing: false,
         issue: event.data,
+        projects: event.projects,
         error: null,
         updatedAt: Date.now(),
       };
@@ -113,34 +127,90 @@ const STATE_ORDER = {
 const isDone = (stateType) =>
   stateType === "completed" || stateType === "canceled";
 
-const sortTasks = (tasks) =>
+const PREFIX_TO_PROJECT = {
+  CA: "Cain",
+  CTG: "Coach Travel Group",
+  CP: "Caterparts",
+  CL: "Class Legal",
+};
+
+const stripTitlePrefix = (title) => {
+  const match = title.match(/^[A-Za-z0-9]+:\s*(.+)$/);
+  return match?.[1] || title;
+};
+
+const resolveProject = (task, projects) => {
+  if (task.project?.name) return task.project;
+
+  const prefix = task.title.match(/^([A-Za-z0-9]+):/)?.[1]?.toUpperCase();
+  const projectName = prefix ? PREFIX_TO_PROJECT[prefix] : null;
+  if (!projectName) return null;
+
+  return (
+    projects.find((project) => project.name === projectName) || {
+      name: projectName,
+      icon: null,
+      color: "#bec2c8",
+    }
+  );
+};
+
+const sortTasks = (tasks, projects) =>
   [...tasks].sort((a, b) => {
     const orderA = STATE_ORDER[a.state.type] ?? 5;
     const orderB = STATE_ORDER[b.state.type] ?? 5;
     if (orderA !== orderB) return orderA - orderB;
-    const projectA = parseTask(a).projectLabel;
-    const projectB = parseTask(b).projectLabel;
+    const projectA = resolveProject(a, projects)?.name || "";
+    const projectB = resolveProject(b, projects)?.name || "";
     if (projectA !== projectB) return projectA.localeCompare(projectB);
     return a.title.localeCompare(b.title);
   });
 
-const PROJECT_ALIASES = {
-  Cain: "CA",
-  Stackfix: "SF",
-  Caterparts: "CTG",
-};
+const ProjectCubeIcon = ({ color }) => (
+  <svg
+    className="project-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path
+      d="M8 2.5 13 5.5v5L8 13.5 3 10.5v-5L8 2.5Z"
+      stroke={color}
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M8 2.5v11M3 5.5 8 8l5-2.5"
+      stroke={color}
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 
-const parseTask = (task) => {
-  const match = task.title.match(/^([A-Za-z0-9]+):\s*(.+)$/);
-  const prefix = match?.[1]?.toUpperCase() || "";
-  const title = match?.[2] || task.title;
-  const projectLabel =
-    prefix ||
-    PROJECT_ALIASES[task.project?.name] ||
-    task.project?.name?.slice(0, 4).toUpperCase() ||
-    "";
+const ProjectTag = ({ project }) => {
+  if (!project?.name) return null;
 
-  return { projectLabel, title };
+  const color = project.color || "#bec2c8";
+
+  return (
+    <span
+      className="project-tag"
+      style={{
+        backgroundColor: `${color}22`,
+        borderColor: `${color}44`,
+      }}
+    >
+      {project.icon ? (
+        <span className="project-icon">{project.icon}</span>
+      ) : (
+        <ProjectCubeIcon color={color} />
+      )}
+      <span className="project-name">{project.name}</span>
+    </span>
+  );
 };
 
 const statusSymbol = (stateType) => {
@@ -276,6 +346,7 @@ export const className = `
 
   .label {
     flex: 1;
+    min-width: 0;
     color: rgba(245, 245, 247, 0.92);
   }
 
@@ -284,18 +355,32 @@ export const className = `
     text-decoration: line-through;
   }
 
-  .project {
+  .project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: ${px(4)};
     flex-shrink: 0;
-    min-width: ${px(34)};
-    padding: ${px(2)} ${px(6)};
-    border-radius: ${px(4)};
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(245, 245, 247, 0.62);
-    font-size: ${px(9)};
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-align: center;
-    text-transform: uppercase;
+    max-width: ${px(130)};
+    padding: ${px(2)} ${px(8)} ${px(2)} ${px(6)};
+    border: ${px(1)} solid;
+    border-radius: ${px(999)};
+    line-height: 1.2;
+  }
+
+  .project-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: ${px(10)};
+    line-height: 1;
+  }
+
+  .project-name {
+    overflow: hidden;
+    color: rgba(245, 245, 247, 0.88);
+    font-size: ${px(10)};
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .empty,
@@ -310,7 +395,14 @@ export const className = `
   }
 `;
 
-export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
+export const render = ({
+  loading,
+  refreshing,
+  issue,
+  projects = [],
+  error,
+  updatedAt,
+}) => {
   if (loading && !issue) {
     return <div className="loading">Loading weekly tasks…</div>;
   }
@@ -319,7 +411,7 @@ export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
     return <div className="error">{error}</div>;
   }
 
-  const tasks = sortTasks(issue?.children?.nodes || []);
+  const tasks = sortTasks(issue?.children?.nodes || [], projects);
   const doneCount = tasks.filter((task) => isDone(task.state.type)).length;
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
@@ -349,7 +441,8 @@ export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
           {tasks.map((task) => {
             const done = isDone(task.state.type);
             const started = task.state.type === "started";
-            const { projectLabel, title } = parseTask(task);
+            const project = resolveProject(task, projects);
+            const title = stripTitlePrefix(task.title);
 
             return (
               <li
@@ -362,9 +455,7 @@ export const render = ({ loading, refreshing, issue, error, updatedAt }) => {
                 >
                   {statusSymbol(task.state.type)}
                 </span>
-                {projectLabel ? (
-                  <span className="project">{projectLabel}</span>
-                ) : null}
+                <ProjectTag project={project} />
                 <div className={`label ${done ? "done" : ""}`}>{title}</div>
               </li>
             );
