@@ -134,6 +134,13 @@ const PREFIX_TO_PROJECT = {
   CL: "Class Legal",
 };
 
+const PROJECT_TO_SHORT = {
+  Cain: "CA",
+  "Coach Travel Group": "CTG",
+  Caterparts: "CP",
+  "Class Legal": "CL",
+};
+
 const stripTitlePrefix = (title) => {
   const match = title.match(/^[A-Za-z0-9]+:\s*(.+)$/);
   return match?.[1] || title;
@@ -155,6 +162,12 @@ const resolveProject = (task, projects) => {
   );
 };
 
+const projectShortLabel = (project, task) => {
+  const prefix = task.title.match(/^([A-Za-z0-9]+):/)?.[1]?.toUpperCase();
+  if (prefix && PREFIX_TO_PROJECT[prefix]) return prefix;
+  return PROJECT_TO_SHORT[project?.name] || "";
+};
+
 const sortTasks = (tasks, projects) =>
   [...tasks].sort((a, b) => {
     const orderA = STATE_ORDER[a.state.type] ?? 5;
@@ -169,8 +182,8 @@ const sortTasks = (tasks, projects) =>
 const ProjectCubeIcon = ({ color }) => (
   <svg
     className="project-icon"
-    width="14"
-    height="14"
+    width="10"
+    height="10"
     viewBox="0 0 16 16"
     fill="none"
     aria-hidden="true"
@@ -190,8 +203,11 @@ const ProjectCubeIcon = ({ color }) => (
   </svg>
 );
 
-const ProjectTag = ({ project }) => {
+const ProjectTag = ({ project, task }) => {
   if (!project?.name) return null;
+
+  const label = projectShortLabel(project, task);
+  if (!label) return null;
 
   const color = project.color || "#bec2c8";
 
@@ -199,8 +215,8 @@ const ProjectTag = ({ project }) => {
     <span
       className="project-tag"
       style={{
-        backgroundColor: `${color}22`,
-        borderColor: `${color}44`,
+        backgroundColor: `${color}18`,
+        borderColor: `${color}33`,
       }}
     >
       {project.icon ? (
@@ -208,7 +224,7 @@ const ProjectTag = ({ project }) => {
       ) : (
         <ProjectCubeIcon color={color} />
       )}
-      <span className="project-name">{project.name}</span>
+      <span className="project-name">{label}</span>
     </span>
   );
 };
@@ -318,7 +334,7 @@ export const className = `
 
   .task {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: ${px(8)};
     padding: ${px(10)} 0;
   }
@@ -345,8 +361,6 @@ export const className = `
   }
 
   .label {
-    flex: 1;
-    min-width: 0;
     color: rgba(245, 245, 247, 0.92);
   }
 
@@ -355,13 +369,20 @@ export const className = `
     text-decoration: line-through;
   }
 
+  .task-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .task-meta {
+    margin-top: ${px(4)};
+  }
+
   .project-tag {
     display: inline-flex;
     align-items: center;
-    gap: ${px(4)};
-    flex-shrink: 0;
-    max-width: ${px(130)};
-    padding: ${px(2)} ${px(8)} ${px(2)} ${px(6)};
+    gap: ${px(3)};
+    padding: ${px(1)} ${px(6)} ${px(1)} ${px(5)};
     border: ${px(1)} solid;
     border-radius: ${px(999)};
     line-height: 1.2;
@@ -370,17 +391,16 @@ export const className = `
   .project-icon {
     display: inline-flex;
     flex-shrink: 0;
-    font-size: ${px(10)};
+    font-size: ${px(8)};
     line-height: 1;
   }
 
   .project-name {
-    overflow: hidden;
-    color: rgba(245, 245, 247, 0.88);
-    font-size: ${px(10)};
+    color: rgba(245, 245, 247, 0.55);
+    font-size: ${px(8)};
     font-weight: 500;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   .empty,
@@ -455,8 +475,14 @@ export const render = ({
                 >
                   {statusSymbol(task.state.type)}
                 </span>
-                <ProjectTag project={project} />
-                <div className={`label ${done ? "done" : ""}`}>{title}</div>
+                <div className="task-body">
+                  <div className={`label ${done ? "done" : ""}`}>{title}</div>
+                  {project ? (
+                    <div className="task-meta">
+                      <ProjectTag project={project} task={task} />
+                    </div>
+                  ) : null}
+                </div>
               </li>
             );
           })}
