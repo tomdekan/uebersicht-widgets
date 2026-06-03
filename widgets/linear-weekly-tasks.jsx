@@ -1,8 +1,8 @@
 import { run } from "uebersicht";
 
 const ISSUE_ID = "SF-118";
-const API_KEY_COMMAND =
-  'cat "$HOME/Library/Application Support/Übersicht/.linear-api-key" 2>/dev/null | tr -d \'[:space:]\'';
+const API_KEY_PATH =
+  "/Users/t/Library/Application Support/Übersicht/.linear-api-key";
 
 const QUERY = `
   query WeekPriorities($id: String!) {
@@ -36,7 +36,9 @@ export const command = async (dispatch) => {
   dispatch({ type: "REFRESH_START" });
 
   try {
-    const apiKey = (await run(API_KEY_COMMAND)).trim();
+    const apiKey = (
+      await run(`cat "${API_KEY_PATH}" 2>/dev/null | tr -d '[:space:]'`)
+    ).trim();
 
     if (!apiKey) {
       dispatch({
@@ -142,8 +144,8 @@ const sortTasks = (tasks) =>
 const ProjectCubeIcon = ({ color }) => (
   <svg
     className="project-icon"
-    width="10"
-    height="10"
+    width="9"
+    height="9"
     viewBox="0 0 16 16"
     fill="none"
     aria-hidden="true"
@@ -205,8 +207,8 @@ const formatUpdatedAt = (updatedAt) => {
   return `${Math.floor(seconds / 60)}m ago`;
 };
 
-const SCALE = 2.025;
-const px = (value) => `${Math.round(value * SCALE)}px`;
+const RETINA = 2.025;
+const px = (value) => `${Math.round(value * RETINA)}px`;
 
 export const className = `
   top: ${px(8)};
@@ -214,28 +216,28 @@ export const className = `
   right: 0;
   margin-left: auto;
   margin-right: auto;
-  width: ${px(320)};
+  width: ${px(280)};
   box-sizing: border-box;
-  padding: ${px(8)} ${px(10)} ${px(8)};
+  padding: ${px(8)} ${px(9)} ${px(8)};
   background: rgba(28, 28, 30, 0.82);
-  -webkit-backdrop-filter: blur(${px(24)});
+  -webkit-backdrop-filter: blur(${px(21)});
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #f5f5f7;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-  font-size: ${px(12)};
+  font-size: ${px(10)};
   font-weight: 400;
   border: ${px(1)} solid rgba(255, 255, 255, 0.08);
-  border-radius: ${px(12)};
+  border-radius: ${px(10)};
   line-height: 1.4;
-  box-shadow: 0 ${px(8)} ${px(24)} rgba(0, 0, 0, 0.28);
+  box-shadow: 0 ${px(8)} ${px(21)} rgba(0, 0, 0, 0.28);
 
   .header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: ${px(8)};
-    margin-bottom: ${px(10)};
+    margin-bottom: ${px(9)};
   }
 
   .clickable {
@@ -253,14 +255,14 @@ export const className = `
   }
 
   .title {
-    font-size: ${px(13)};
+    font-size: ${px(11)};
     font-weight: 600;
     letter-spacing: -0.01em;
   }
 
   .meta {
     color: rgba(245, 245, 247, 0.55);
-    font-size: ${px(11)};
+    font-size: ${px(10)};
     white-space: nowrap;
   }
 
@@ -270,16 +272,16 @@ export const className = `
 
   .progress {
     height: ${px(3)};
-    margin-bottom: ${px(10)};
+    margin-bottom: ${px(9)};
     background: rgba(255, 255, 255, 0.08);
-    border-radius: ${px(2)};
+    border-radius: ${px(1)};
     overflow: hidden;
   }
 
   .progress-bar {
     height: 100%;
     background: #64d2ff;
-    border-radius: ${px(2)};
+    border-radius: ${px(1)};
     transition: width 0.3s ease;
   }
 
@@ -293,7 +295,7 @@ export const className = `
     display: flex;
     align-items: flex-start;
     gap: ${px(8)};
-    padding: ${px(10)} 0;
+    padding: ${px(9)} 0;
   }
 
   .task + .task {
@@ -301,11 +303,11 @@ export const className = `
   }
 
   .status {
-    width: ${px(14)};
+    width: ${px(13)};
     flex-shrink: 0;
     text-align: center;
     color: rgba(245, 245, 247, 0.45);
-    font-size: ${px(11)};
+    font-size: ${px(10)};
     line-height: 1.45;
   }
 
@@ -339,7 +341,7 @@ export const className = `
     display: inline-flex;
     align-items: center;
     gap: ${px(3)};
-    padding: ${px(1)} ${px(6)} ${px(1)} ${px(5)};
+    padding: ${px(1)} ${px(5)} ${px(1)} ${px(5)};
     border: ${px(1)} solid;
     border-radius: ${px(999)};
     line-height: 1.2;
@@ -364,7 +366,7 @@ export const className = `
   .error,
   .loading {
     color: rgba(245, 245, 247, 0.55);
-    font-size: ${px(11)};
+    font-size: ${px(10)};
   }
 
   .error {
